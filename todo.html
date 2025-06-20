@@ -10,29 +10,74 @@
       align-items: center;
       margin-top: 50px;
     }
-    input#taskInput {
+    .input-container {
+      display: flex;
+      margin-bottom: 20px;
+    }
+    .input-container input,
+    .input-container select {
       padding: 10px;
       margin-right: 10px;
       font-size: 16px;
+      border: 1px solid #ccc; /* Added common border for consistency */
+      border-radius: 4px; /* Added common border-radius */
     }
-    button#addButton {
-      padding: 10px;
+    .input-container input#taskInput {
+      flex-grow: 1; /* Allow task input to take more space */
+    }
+    .input-container button#addButton {
+      padding: 10px 15px; /* Adjusted padding */
       font-size: 16px;
       background-color: #4CAF50;
       color: white;
       border: none;
       border-radius: 5px;
+      cursor: pointer; /* Added cursor pointer */
+    }
+    /* Remove margin from the last child in the container to avoid extra space */
+    .input-container > *:last-child {
+      margin-right: 0;
     }
     ul#taskList {
       list-style-type: none;
       padding: 0;
+      width: 80%; /* Make task list wider */
+      max-width: 600px; /* Add max-width */
     }
     ul#taskList li {
       padding: 10px;
       border-bottom: 1px solid #ddd;
       cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center; /* Vertically align items in li */
     }
-    ul#taskList li.completed {
+    ul#taskList li span {
+      margin-right: 10px;
+    }
+    ul#taskList li span:last-child {
+      margin-right: 0;
+    }
+    .task-text {
+      flex-grow: 1; /* Allow task text to take available space */
+    }
+    .task-assignee, .task-duedate, .task-status {
+      min-width: 100px; /* Give some min-width to detail spans */
+      text-align: left; /* Align text for details */
+    }
+    .status-not-started {
+      border-left: 5px solid #FFCC00; /* Yellow */
+    }
+    .status-in-progress {
+      border-left: 5px solid #007BFF; /* Blue */
+    }
+    .status-completed {
+      border-left: 5px solid #28A745; /* Green */
+      /* text-decoration: line-through; */ /* Keep or remove based on preference */
+      /* color: #aaa; */ /* Keep or remove based on preference */
+    }
+    /* Style for completed tasks within the new status system */
+    ul#taskList li.status-completed .task-text {
       text-decoration: line-through;
       color: #aaa;
     }
@@ -40,32 +85,105 @@
 </head>
 <body>
   <h1>Simple TODO App</h1>
-  <input type="text" id="taskInput" placeholder="Enter your task">
-  <button id="addButton">Add Task</button>
+  <div class="input-container">
+    <input type="text" id="taskInput" placeholder="Enter your task">
+    <input type="text" id="assigneeInput" placeholder="Assignee">
+    <input type="date" id="dueDateInput">
+    <select id="statusInput">
+      <option value="Not Started">Not Started</option>
+      <option value="In Progress">In Progress</option>
+      <option value="Completed">Completed</option>
+    </select>
+    <button id="addButton">Add Task</button>
+  </div>
   <ul id="taskList">
     <!-- Tasks will be added here -->
   </ul>
 
   <script>
     const taskInput = document.getElementById('taskInput');
+    const assigneeInput = document.getElementById('assigneeInput');
+    const dueDateInput = document.getElementById('dueDateInput');
+    const statusInput = document.getElementById('statusInput');
     const addButton = document.getElementById('addButton');
     const taskList = document.getElementById('taskList');
 
+    const statuses = ['Not Started', 'In Progress', 'Completed'];
+    const statusClasses = {
+      'Not Started': 'status-not-started',
+      'In Progress': 'status-in-progress',
+      'Completed': 'status-completed'
+    };
+
     function addTask() {
-      const taskText = taskInput.value.trim();
-      if (taskText === '') {
+      const taskTextValue = taskInput.value.trim();
+      const assigneeValue = assigneeInput.value.trim();
+      const dueDateValue = dueDateInput.value;
+      const statusValue = statusInput.value;
+
+      if (taskTextValue === '') {
+        alert('Task description cannot be empty.');
         return;
       }
 
       const li = document.createElement('li');
-      li.textContent = taskText;
+
+      const taskTextSpan = document.createElement('span');
+      taskTextSpan.className = 'task-text';
+      taskTextSpan.textContent = taskTextValue;
+
+      const assigneeSpan = document.createElement('span');
+      assigneeSpan.className = 'task-assignee';
+      assigneeSpan.textContent = assigneeValue || 'N/A'; // Default if empty
+
+      const dueDateSpan = document.createElement('span');
+      dueDateSpan.className = 'task-duedate';
+      dueDateSpan.textContent = dueDateValue || 'N/A'; // Default if empty
+
+      const statusIndicatorSpan = document.createElement('span');
+      statusIndicatorSpan.className = 'task-status'; // Changed from task-status-indicator to match CSS
+      statusIndicatorSpan.textContent = statusValue;
+
+      li.appendChild(taskTextSpan);
+      li.appendChild(assigneeSpan);
+      li.appendChild(dueDateSpan);
+      li.appendChild(statusIndicatorSpan);
+
+      li.classList.add(statusClasses[statusValue]);
 
       li.addEventListener('click', () => {
-        li.classList.toggle('completed');
+        let currentStatus = '';
+        // Find current status by checking classes
+        for (const key in statusClasses) {
+          if (li.classList.contains(statusClasses[key])) {
+            currentStatus = key;
+            break;
+          }
+        }
+
+        const currentIndex = statuses.indexOf(currentStatus);
+        const nextIndex = (currentIndex + 1) % statuses.length;
+        const nextStatus = statuses[nextIndex];
+
+        // Remove all status classes
+        for (const key in statusClasses) {
+          li.classList.remove(statusClasses[key]);
+        }
+
+        // Add new status class
+        li.classList.add(statusClasses[nextStatus]);
+        // Update status indicator span
+        const statusSpanToUpdate = li.querySelector('.task-status');
+        if (statusSpanToUpdate) {
+          statusSpanToUpdate.textContent = nextStatus;
+        }
       });
 
       taskList.appendChild(li);
       taskInput.value = '';
+      // assigneeInput.value = ''; // Optional: clear other fields
+      // dueDateInput.value = '';   // Optional: clear other fields
+      // statusInput.value = 'Not Started'; // Optional: reset status
     }
 
     addButton.addEventListener('click', addTask);
